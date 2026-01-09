@@ -23,16 +23,18 @@
 #'
 #' @export
 
+CNVCluster <- function(seuratObj, k = NULL, h = NULL) {
+  if (is.null(k)) {
+    kDetection = "automatic"
+  }
+  if (!is.null(k)) {
+    kDetection = "manual"
+  }
 
-CNVCluster <- function(seuratObj,
-                       k = NULL,
-                       h = NULL) {
-
-  if (is.null(k)){kDetection = "automatic"}
-  if (!is.null(k)){kDetection = "manual"}
-
-  if (length(Seurat::Cells(seuratObj,assay = "genomicScores")) < 30000) {
-    genomicMatrix <- t(as.matrix(Seurat::GetAssay(seuratObj, assay = "genomicScores")$data))
+  if (length(Seurat::Cells(seuratObj, assay = "genomicScores")) < 30000) {
+    genomicMatrix <- t(as.matrix(
+      Seurat::GetAssay(seuratObj, assay = "genomicScores")$data
+    ))
 
     dist_cos <- proxy::dist(genomicMatrix, method = "Manhattan")
 
@@ -48,10 +50,12 @@ CNVCluster <- function(seuratObj,
       slopes <- diff(y_norm) / diff(x_norm)
       slope_changes <- diff(slopes)
 
-      significant_changes <- which(abs(slope_changes) > sensitivity * max(abs(slope_changes)))
+      significant_changes <- which(
+        abs(slope_changes) > sensitivity * max(abs(slope_changes))
+      )
 
       if (length(significant_changes) == 0) {
-        return(x[ceiling(length(x)/2)])
+        return(x[ceiling(length(x) / 2)])
       }
 
       first_quarter <- ceiling(length(x) / 4)
@@ -68,20 +72,20 @@ CNVCluster <- function(seuratObj,
     wss <- sapply(k_values, function(k) {
       clusters <- cutree(hc, k = k)
       sum(sapply(unique(clusters), function(cl) {
-        sum(dist_matrix_full[which(clusters == cl), which(clusters == cl)]^2) / (2 * sum(clusters == cl))
+        sum(dist_matrix_full[which(clusters == cl), which(clusters == cl)]^2) /
+          (2 * sum(clusters == cl))
       }))
     })
 
-    if(kDetection == "automatic") {k <- find_elbow(k_values, wss)}
+    if (kDetection == "automatic") {
+      k <- find_elbow(k_values, wss)
+    }
 
     clusters <- cutree(hc, k = k, h = h)
 
     seuratObj$cnv_clusters = as.factor(clusters)
-
-
   } else {
-
-    mat <- GetAssayData(seuratObj, assay = "genomicScores", slot = "data")
+    mat <- GetAssayData(seuratObj, assay = "genomicScores", layer = "data")
     pca_res <- prcomp(t(mat), center = TRUE, scale. = TRUE)
     X <- pca_res$x[, 1:30]
 
@@ -105,7 +109,3 @@ CNVCluster <- function(seuratObj,
 
   return(seuratObj)
 }
-
-
-
-
